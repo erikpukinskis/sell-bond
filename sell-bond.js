@@ -1,6 +1,6 @@
 var library = require("module-library")(require)
 
-module.exports = library.define(
+module.exports = library.export(
   "sell-bond",
   ["web-element"],
   function(element) {
