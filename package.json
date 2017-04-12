@@ -1,0 +1,14 @@
+{
+  "name": "sell-bond",
+  "version": "0.0.0",
+  "description": "Tools for finding the money to make things happen",
+  "main": "sell-bond.js",
+  "dependencies": {
+    "module-library": "*",
+    "web-element": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erikpukinskis/sell-bond.git"
+  }
+}
