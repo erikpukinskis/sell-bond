@@ -1,38 +1,24 @@
 
 var library = require("module-library")(require)
 
-    // "module-library": "*",
-    // "house-plan": "*",
-    // "house-panels": "*",
-    // "building-materials": "*",
-    // "web-element": "*",
-    // "release-checklist": "*",
-    // "browser-bridge": "*",
-    // "basic-styles": "*",
-    // "tell-the-universe": "*",
-    // "identifiable": "*",
-    // "plivo": "*",
-    // "build-house": "*",
-    // "make-it-checkable": "*",
-    // "show-source": "*",
-    // "phone-person": "*",
-    // "issue-bond": "*"
-
-// Holy shit, this is a "component" in the old Nrtv sense! issueBond is a model/data store, with no deps and a well defined API. sell-bond pulls in dependenceis from everywhere and essentially acts as an interface between issueBond and the universe.
-
-// Eventually it'll be broken down into several components, as they make sense in isolation.
-
-
 
 module.exports = library.export(
   "render-invoice",
-  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "./render-invoice", "./render-pitch", "./render-checklist"],
-  function(element, basicStyles, tellTheUniverse, issueBond, BrowserBridge, phonePerson, renderInvoice, buildingMaterials, invoiceMaterials, renderChecklist) {
+  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host"],
+  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, webHost) {
 
+    var bondUniverse = aWildUniverseAppeared("bonds", {issueBond: "issue-bond"})
 
-    var tellTheUniverse = tellTheUniverse.called("bonds").withNames({issueBond: "issue-bond"})
+    var bondsForSale = {}
 
-    tellTheUniverse.load()
+    function sellBond(bond) {
+      if (host.remember("sell-bond")) {
+        return
+      }
+      host.onSite(prepareSite)
+      host.see("sell-bond")
+      bondsForSale[bond.id] = bond
+    }
 
     function parseMoney(string) {
       var trimmed = string.replace(/[^0-9.-]*/g, "")
@@ -49,15 +35,13 @@ module.exports = library.export(
     basicStyles.addTo(baseBridge)
 
 
+    function sellBond(bond) {
+
+    }
+
     function prepareSite(site) {
 
       // Issue a bond
-
-      site.addRoute("get", "/checklist/:listId", function(request, response) {
-        var bridge = baseBridge.forResponse(response)
-        var list = releaseChecklist.get(request.params.listId)
-        renderChecklist(bridge, list)
-      })
 
       site.addRoute(
         "post",
@@ -81,7 +65,7 @@ module.exports = library.export(
             }
           )
 
-          tellTheUniverse("issueBond", bond.id, amount, issuerName, repaymentSource, bond.data)
+          bondUniverse.do("issueBond", bond.id, amount, issuerName, repaymentSource, bond.data)
 
           response.redirect("/housing-bonds/"+bond.id)
         }
@@ -99,15 +83,7 @@ module.exports = library.export(
           var bond = issueBond.get(request.params.id)
           var list = bond.list
 
-          var invoice = invoiceMaterials(bond)
-
-          var invoicePartial = bridge.partial()
-
-          if (!invoicePartial.__isNrtvBrowserBridge) {
-            throw new Error("no bridge?")
-          }
-
-          renderInvoice(invoicePartial, invoice, materials.hours)
+          bridge.send("[invoice here]")
         }
       )
 
@@ -133,7 +109,7 @@ module.exports = library.export(
 
           var order = issueBond.order(null, name, number, bondId, faceValue)
 
-          tellTheUniverse(
+          bondUniverse.do(
             "issueBond.order", order.id, name, number, bondId, faceValue)
 
           var buyer = phonePerson("18123201877")
@@ -169,7 +145,7 @@ module.exports = library.export(
 
         issueBond.markPaid(orderId, price, signature)
 
-        tellTheUniverse("issueBond.markPaid", orderId, price, signature)
+        bondUniverse.do("issueBond.markPaid", orderId, price, signature)
 
         baseBridge.forResponse(response).send("Shares signed")
       })
@@ -272,7 +248,7 @@ module.exports = library.export(
       return string
     }
 
-    return {}
+    return sellBond
   }
 )
 

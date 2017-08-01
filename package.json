@@ -5,7 +5,12 @@
   "main": "sell-bond.js",
   "dependencies": {
     "module-library": "*",
-    "web-element": "*"
+    "web-element": "*",
+    "web-host": "*",
+    "basic-styles": "*",
+    "tell-the-universe": "*",
+    "issue-bond": "*",
+    "phone-person": "*"
   },
   "repository": {
     "type": "git",
