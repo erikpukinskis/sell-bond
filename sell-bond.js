@@ -64,59 +64,32 @@ module.exports = library.export(
 
           for(var id in bondsForSale) {
             var bond = bondsForSale[id]
-            page.addChild(element("p", [
-              element(".button", bond.outcome),
-              element(" issued by "+bond.issuerName),
-            ]))
+            page.addChild(element("p", element("a", {href: "/bond-catalog/"+bond.id}, bond.outcome), "issued by "+bond.issuerName))
           }
 
           baseBridge.forResponse(response).send(page)
         }
       )
 
-
-      // Issue a bond
-
-      site.addRoute(
-        "post",
-        "/housing-bonds",
-        function(request, response) {
-
-          var list = false
-          var issuerName = request.body.issuerName
-          var amount = parseMoney(request.body.amount)
-
-          var repaymentSource = request.body.repaymentSource
-
-          var bond = issueBond(
-            null,
-            amount,
-            issuerName,
-            repaymentSource,
-            {
-              listId: listId
-            }
-          )
-
-          bondUniverse.do("issueBond", bond.id, amount, issuerName, repaymentSource, bond.data)
-
-          response.redirect("/housing-bonds/"+bond.id)
-        }
-      )
-
-
-      // Learn about an issued bond
-
-
       site.addRoute(
         "get",
-        "/housing-bonds/:id",
+        "/bond-catalog/:id",
         function(request, response) {
-          var bridge = new BrowserBridge().forResponse(response)        
+          var bridge = baseBridge.forResponse(response)        
           var bond = issueBond.get(request.params.id)
-          var list = bond.list
+          var tasks = bond.getTasks()
 
-          bridge.send("[invoice here]")
+          function li(task) {
+            return element("li", task)
+          }
+
+          var page = element(".lil-page", [
+            element("h1", "Tasks required for maturation of bond"),
+            tasks.length ? element("ol", tasks.map(li)) : element("p", "None"),
+            element(".button", "Buy "+bond.outcome+" bond - $$$"),
+          ])
+
+          bridge.send(page)
         }
       )
 
