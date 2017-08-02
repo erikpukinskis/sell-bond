@@ -64,7 +64,7 @@ module.exports = library.export(
 
           for(var id in bondsForSale) {
             var bond = bondsForSale[id]
-            page.addChild(element(".button", bond.outcome))
+            page.addChild(element("p", element(".button", bond.outcome)))
           }
 
           baseBridge.forResponse(response).send(page)
