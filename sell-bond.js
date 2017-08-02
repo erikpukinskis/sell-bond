@@ -3,20 +3,16 @@ var library = require("module-library")(require)
 
 
 module.exports = library.export(
-  "render-invoice",
-  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host"],
-  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, webHost) {
+  "sell-bond",
+  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person"],
+  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson) {
 
     var bondUniverse = aWildUniverseAppeared("bonds", {issueBond: "issue-bond"})
 
     var bondsForSale = {}
 
     function sellBond(bond) {
-      if (host.remember("sell-bond")) {
-        return
-      }
       host.onSite(prepareSite)
-      host.see("sell-bond")
       bondsForSale[bond.id] = bond
     }
 
@@ -34,12 +30,47 @@ module.exports = library.export(
 
     basicStyles.addTo(baseBridge)
 
-
-    function sellBond(bond) {
-
-    }
+    someoneIsAPerson.remember("x6xv", "Treeso")
 
     function prepareSite(site) {
+
+      someoneIsAPerson.prepareSite(site)
+
+      if (site.remember("sell-bond")) {
+        return
+      }
+      site.see("sell-bond")
+
+      site.addRoute(
+        "get",
+        "/bond-catalog",
+        function(request, response) {
+
+          var meId = someoneIsAPerson.getIdFrom(request)
+
+          if (meId) {
+            var avatar = someoneIsAPerson(baseBridge, meId)
+          } else {
+            someoneIsAPerson.getIdentityFrom(response, "/assignment")
+            return
+          }
+
+          var page = element([
+            avatar,
+            element("h1", "Collective Magic Bond Co"),
+            element("p", "est 2017"),
+            element("h1", "Bond Catalog"),
+          ])
+
+          for(var id in bondsForSale) {
+            var bond = bondsForSale[id]
+            page.addChild(element(".button", bond.outcome))
+          }
+
+          baseBridge.forResponse(response).send(page)
+        }
+      )
+
 
       // Issue a bond
 
@@ -48,8 +79,7 @@ module.exports = library.export(
         "/housing-bonds",
         function(request, response) {
 
-          var listId = request.body.checklistId
-          var list = releaseChecklist.get(listId)
+          var list = false
           var issuerName = request.body.issuerName
           var amount = parseMoney(request.body.amount)
 
@@ -173,56 +203,6 @@ module.exports = library.export(
 
       bridge.send(form)
     }
-
-
-    function issueBondForm(bridge, list, invoice) {
-
-      var form = element("form", {method: "post", action: "/housing-bonds"}, [
-        element("p", "Who is issuing this bond?"),
-        element("p",
-          element("input", {
-            type: "text",
-            name: "issuerName",
-            placeholder: "Issuer name",
-          })
-        ),
-
-        element("p", "Total bonded amount"),
-        element("p",
-          element("input", 
-            {
-              type: "text", 
-              value: toDollarString(invoice.total),
-              name: "amount",
-              placeholder: "Amount"
-            },
-            element.style({"max-width": "5em"})
-          )
-        ),
-
-        element("p", "To be repayed from"),
-        element("p",
-          element("input", {
-            type: "text",
-            name: "repaymentSource",
-            value: "Completion of release checklist "+list.story,
-            placeholder: "Source of repayment funds",
-          })
-        ),
-
-        element("input", {
-          type: "hidden",
-          name: "checklistId",
-          value: list.id
-        }),
-
-        element("input.button", {type: "submit", value: "Issue bond"}),
-      ])
-
-      bridge.send(form)
-
-    }
-
 
 
     function toDollarString(cents) {

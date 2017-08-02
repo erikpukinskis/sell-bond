@@ -10,7 +10,9 @@
     "basic-styles": "*",
     "tell-the-universe": "*",
     "issue-bond": "*",
-    "phone-person": "*"
+    "phone-person": "*",
+    "browser-bridge": "*",
+    "someone-is-a-person": "*"
   },
   "repository": {
     "type": "git",
