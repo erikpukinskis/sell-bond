@@ -192,16 +192,15 @@ module.exports = library.export(
       bridge.send(page)
     }
 
-    function orderBond(request, response) {
+    var freshOrders = {}
 
-      var bridge = baseBridge.forResponse(response)
+    function orderBond(request, response) {
 
       var name = request.body.name
       var number = request.body.phoneNumber
       var bondId = request.params.bondId
       var bond = issueBond.get(bondId)
       var faceValue = bond.salePrice()
-
 
       var investorId = issueBond.registerInvestor(null, name, number)
 
@@ -217,7 +216,39 @@ module.exports = library.export(
 
       buyer.send(number+" ("+name+") wants to by a "+toDollarString(faceValue)+" bond: http://ezjs.co/bond-orders/"+orderId)
 
-      bridge.send(element(".lil-page", element("p", "Thank you for your request. Erik will text/call you shortly to arrange payment! Your investor id is <strong>"+investorId+"</strong>")))
+      freshOrders[investorId] = orderId
+
+      response.redirect("/investors/"+investorId)      
+    }
+
+    function investorDashboard(request, response) {
+
+      var bridge = baseBridge.forResponse(response)
+
+      var investorId = request.params.investorId
+      
+      var profile = issueBond.getInvestorProfile(investorId)
+
+      var page = element(".lil-page", [
+        element("h1", profile.name+" is an investor"),
+      ])
+
+      var freshOrder = freshOrders[investorId]
+
+      if (freshOrder) {
+        delete freshOrders[investorId]
+        var outcome = issueBond.describeOrder(freshOrder)
+        var message = element("p", "Thank you for your order. Erik will text/call you shortly to arrange payment for the "+outcome+" bond. Your investor id is <strong>"+investorId+"</strong> and your order id is <strong>"+freshOrder+"</strong> if you would like to note them for your records.")
+        page.addChild(message)
+      }
+
+      page.addChild(element("h1", "Bond shares"))
+
+      issueBond.eachOfMyShares(investorId, function(share) {
+        page.addChild(element("p", share.outcome+" bond - "+share.status))
+      })
+
+      bridge.send(page)
     }
 
     function prepareSite(site) {
@@ -239,6 +270,12 @@ module.exports = library.export(
         "get",
         "/bond-catalog/:id",
         renderBond
+      )
+
+      site.addRoute(
+        "get",
+        "/investors/:investorId",
+        investorDashboard
       )
 
       // Request to buy a bond
