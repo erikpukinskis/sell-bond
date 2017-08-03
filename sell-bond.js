@@ -1,11 +1,79 @@
-
 var library = require("module-library")(require)
+
+
+
+library.define(
+  "to-dollar-string",
+  function() {
+    return function toDollarString(cents) {
+      if (cents < 0) {
+        var negative = true
+        cents = Math.abs(cents)
+      }
+
+      cents = Math.ceil(cents)
+
+      var dollars = Math.floor(cents / 100)
+      var remainder = cents - dollars*100
+      if (remainder < 10) {
+        remainder = "0"+remainder
+      }
+
+      var string = "$"+dollars+"."+remainder
+
+      if (negative) {
+        string = "-"+string
+      }
+
+      return string
+    }
+  }
+)
+
+
+
+library.define(
+  "line-item",
+  ["web-element", "to-dollar-string"],
+  function(element, toDollarString) {
+    var lineItemTemplate = element.template(
+      ".line-item",
+      element.style({
+        "margin-top": "0.25em",
+      }),
+      function(description, total) {
+
+        this.addChild(element(
+          ".grid-12",
+          description
+        ))
+
+        // this.addChild(element(
+        //   ".grid-8",
+        //   qty
+        // ))
+
+        this.addChild(element(
+          ".grid-4",
+          element.style({
+            "border-bottom": "1px solid #666",
+            "padding-left": "0.25em"
+          }),
+          toDollarString(total)
+        ))
+      }
+    )
+
+    return lineItemTemplate
+  }
+)
+
 
 
 module.exports = library.export(
   "sell-bond",
-  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person"],
-  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson) {
+  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person", "line-item", "to-dollar-string"],
+  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson, lineItem, toDollarString) {
 
     var bondUniverse = aWildUniverseAppeared("bonds", {issueBond: "issue-bond"})
 
@@ -32,6 +100,103 @@ module.exports = library.export(
 
     someoneIsAPerson.remember("x6xv", "Treeso")
 
+    function purchaseForm(bond) {
+      var buyButtonLabel = "Buy "+bond.outcome+" bond - "+toDollarString(bond.totalExpenses())
+
+      var form = element("form", {method: "post", action: "/bond-catalog/"+bond.id+"/orders"}, [
+        element("p", element("input", {type: "text", name: "name", placeholder: "Purchaser name"})),
+        element("p", element("input", {type: "text", name: "phoneNumber", placeholder: "Contact number"})),
+        element("input", {type: "submit", value: buyButtonLabel})
+      ])
+
+      return form
+    }
+
+    function renderBondCatalog(request, response) {
+
+      var meId = someoneIsAPerson.getIdFrom(request)
+
+      if (meId) {
+        var avatar = someoneIsAPerson(baseBridge, meId)
+      } else {
+        someoneIsAPerson.getIdentityFrom(response, "/assignment")
+        return
+      }
+
+      var page = element([
+        avatar,
+        element("h1", "Collective Magic Bond Co"),
+        element("p", "est 2017"),
+        element("h1", "Bond Catalog"),
+      ])
+
+      for(var id in bondsForSale) {
+        var bond = bondsForSale[id]
+        page.addChild(element("p", element("a", {href: "/bond-catalog/"+bond.id}, bond.outcome), "issued by "+bond.issuerName))
+      }
+
+      baseBridge.forResponse(response).send(page)
+    }
+
+    function renderBond(request, response) {
+      var bridge = baseBridge.forResponse(response)
+
+      bridge.addToHead(element.stylesheet(lineItem))
+
+      var bond = issueBond.get(request.params.id)
+      var tasks = bond.getTasks()
+
+      function li(task) {
+        return element("li", task)
+      }
+
+      var expenses = element()
+
+      bond.eachExpense(function(description, subtotal) {
+        expenses.addChild(lineItem(description, subtotal))
+      })
+
+      var page = element(".lil-page", [
+        element("h1", bond.outcome+" bond"),
+        element("p", "Issued by "+bond.issuerName),
+        element("h1", "Tasks required for maturation of bond"),
+        tasks.length ? element("ol", tasks.map(li)) : element("p", "None"),
+        element("h1", "Financials"),
+        expenses,
+        element("p", "Total costs: "+toDollarString(bond.totalExpenses())),
+        element("p", "Sale price: "+toDollarString(bond.salePrice())),
+        element("p", "Bondholder profit after sale: "+toDollarString(bond.profit())),
+        element("h1", "Purchase"),
+        purchaseForm(bond),
+        element(element.style({"height": "100px"}))
+      ])
+
+      bridge.send(page)
+    }
+
+    function orderBond(request, response) {
+
+      var bridge = baseBridge.forResponse(response)
+
+      var name = request.body.name
+      var number = request.body.phoneNumber
+      var bondId = request.params.bondId
+      var bond = issueBond.get(bondId)
+
+      var faceValue = bond.salePrice()
+
+      var order = issueBond.order(null, name, number, bondId, faceValue)
+
+      bondUniverse.do(
+        "issueBond.order", order.id, name, number, bondId, faceValue)
+
+      var buyer = phonePerson("18123201877")
+
+      buyer.send(number+" ("+name+") wants to by a "+toDollarString(faceValue)+" bond: http://ezjs.co/bond-orders/"+order.id)
+
+      bridge.send(element(".lil-page", element("p", "Thank you for your request. Erik will text/call you shortly to arrange payment!")))
+    }
+
     function prepareSite(site) {
 
       someoneIsAPerson.prepareSite(site)
@@ -44,88 +209,21 @@ module.exports = library.export(
       site.addRoute(
         "get",
         "/bond-catalog",
-        function(request, response) {
-
-          var meId = someoneIsAPerson.getIdFrom(request)
-
-          if (meId) {
-            var avatar = someoneIsAPerson(baseBridge, meId)
-          } else {
-            someoneIsAPerson.getIdentityFrom(response, "/assignment")
-            return
-          }
-
-          var page = element([
-            avatar,
-            element("h1", "Collective Magic Bond Co"),
-            element("p", "est 2017"),
-            element("h1", "Bond Catalog"),
-          ])
-
-          for(var id in bondsForSale) {
-            var bond = bondsForSale[id]
-            page.addChild(element("p", element("a", {href: "/bond-catalog/"+bond.id}, bond.outcome), "issued by "+bond.issuerName))
-          }
-
-          baseBridge.forResponse(response).send(page)
-        }
+        renderBondCatalog
       )
 
       site.addRoute(
         "get",
         "/bond-catalog/:id",
-        function(request, response) {
-          var bridge = baseBridge.forResponse(response)        
-          var bond = issueBond.get(request.params.id)
-          var tasks = bond.getTasks()
-
-          function li(task) {
-            return element("li", task)
-          }
-
-          var page = element(".lil-page", [
-            element("h1", "Tasks required for maturation of bond"),
-            tasks.length ? element("ol", tasks.map(li)) : element("p", "None"),
-            element(".button", "Buy "+bond.outcome+" bond - $$$"),
-          ])
-
-          bridge.send(page)
-        }
+        renderBond
       )
-
 
       // Request to buy a bond
 
       site.addRoute(
         "post",
-        "/housing-bonds/:bondId/buy",
-        function(request, response) {
-
-          var name = request.body.name
-          var number = request.body.phoneNumber
-          var bondId = request.params.bondId
-          var bond = issueBond.get(bondId)
-          var faceValue
-
-          ;[20, 100, 500].forEach(function(dollars) {
-            if (request.body["buy-"+dollars]) {
-              faceValue = dollars*100
-            }
-          })
-
-          var order = issueBond.order(null, name, number, bondId, faceValue)
-
-          bondUniverse.do(
-            "issueBond.order", order.id, name, number, bondId, faceValue)
-
-          var buyer = phonePerson("18123201877")
-
-          buyer.send(number+" ("+name+") wants to by a "+toDollarString(faceValue)+" bond: http://ezjs.co/bond-orders/"+order.id)
-
-          var bridge = baseBridge.forResponse(response)
-
-          bridge.send(element("p", "Thank you for your request. Erik will text/call you shortly to arrange payment!"))
-        }
+        "/bond-catalog/:bondId/orders",
+        orderBond
       )
 
       // Get an order to sign
@@ -178,30 +276,6 @@ module.exports = library.export(
       )
 
       bridge.send(form)
-    }
-
-
-    function toDollarString(cents) {
-      if (cents < 0) {
-        var negative = true
-        cents = Math.abs(cents)
-      }
-
-      cents = Math.ceil(cents)
-
-      var dollars = Math.floor(cents / 100)
-      var remainder = cents - dollars*100
-      if (remainder < 10) {
-        remainder = "0"+remainder
-      }
-
-      var string = "$"+dollars+"."+remainder
-
-      if (negative) {
-        string = "-"+string
-      }
-
-      return string
     }
 
     return sellBond
