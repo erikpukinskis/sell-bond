@@ -101,9 +101,27 @@ module.exports = library.export(
     someoneIsAPerson.remember("x6xv", "Treeso")
 
     function purchaseForm(bond) {
-      var buyButtonLabel = "Buy "+bond.outcome+" bond - "+toDollarString(bond.totalExpenses())
+      var status = issueBond.getStatus(bond.id)
 
-      var form = element("form", {method: "post", action: "/bond-catalog/"+bond.id+"/orders"}, [
+      if (status == "available") {
+        var action = "Buy "
+      } else if (status == "pending") {
+        var action = "Make offer on "
+      }
+
+      if (status == "sold") {
+        return element("p", "Bond has already been sold")
+      }
+
+      var buyButtonLabel = action+bond.outcome+" bond - "+toDollarString(bond.totalExpenses())
+
+      var form = element("form", {method: "post", action: "/bond-catalog/"+bond.id+"/orders"})
+
+      if (status == "pending") {
+        form.addChild(element("p", element.style({color: "#ff00c0"}), "An offer has already been made on this bond. You can make a secondary offer, which will be fulfilled if the pending one falls through."))
+      }
+
+      form.addChildren([
         element("p", element("input", {type: "text", name: "name", placeholder: "Purchaser name"})),
         element("p", element("input", {type: "text", name: "phoneNumber", placeholder: "Contact number"})),
         element("input", {type: "submit", value: buyButtonLabel})
@@ -132,7 +150,7 @@ module.exports = library.export(
 
       for(var id in bondsForSale) {
         var bond = bondsForSale[id]
-        page.addChild(element("p", element("a", {href: "/bond-catalog/"+bond.id}, bond.outcome), "issued by "+bond.issuerName))
+        page.addChild(element("p", element("a", {href: "/bond-catalog/"+bond.id}, bond.outcome), " issued by "+bond.issuerName))
       }
 
       baseBridge.forResponse(response).send(page)
@@ -182,19 +200,24 @@ module.exports = library.export(
       var number = request.body.phoneNumber
       var bondId = request.params.bondId
       var bond = issueBond.get(bondId)
-
       var faceValue = bond.salePrice()
 
-      var order = issueBond.order(null, name, number, bondId, faceValue)
+
+      var investorId = issueBond.registerInvestor(null, name, number)
 
       bondUniverse.do(
-        "issueBond.order", order.id, name, number, bondId, faceValue)
+        "issueBond.registerInvestor", investorId, name, number)
+
+      var orderId = issueBond.order(null, bondId, investorId, faceValue)
+
+      bondUniverse.do(
+        "issueBond.order", orderId, bondId, investorId, faceValue)
 
       var buyer = phonePerson("18123201877")
 
-      buyer.send(number+" ("+name+") wants to by a "+toDollarString(faceValue)+" bond: http://ezjs.co/bond-orders/"+order.id)
+      buyer.send(number+" ("+name+") wants to by a "+toDollarString(faceValue)+" bond: http://ezjs.co/bond-orders/"+orderId)
 
-      bridge.send(element(".lil-page", element("p", "Thank you for your request. Erik will text/call you shortly to arrange payment!")))
+      bridge.send(element(".lil-page", element("p", "Thank you for your request. Erik will text/call you shortly to arrange payment! Your investor id is <strong>"+investorId+"</strong>")))
     }
 
     function prepareSite(site) {
