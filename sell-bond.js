@@ -72,8 +72,8 @@ library.define(
 
 module.exports = library.export(
   "sell-bond",
-  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person", "line-item", "to-dollar-string"],
-  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson, lineItem, toDollarString) {
+  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person", "line-item", "to-dollar-string", "character", "post-button"],
+  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson, lineItem, toDollarString, character, postButton) {
 
     var bondUniverse = aWildUniverseAppeared("bonds", {issueBond: "issue-bond"})
 
@@ -98,28 +98,26 @@ module.exports = library.export(
 
     basicStyles.addTo(baseBridge)
 
-    someoneIsAPerson.remember("x6xv", "Treeso")
+    character("k2zy", "bloko")
 
-    function purchaseForm(bond) {
+    function purchaseForm(bond, myInvestorId) {
+
       var status = issueBond.getStatus(bond.id)
+      var shareId = issueBond.myOrderOn(bond.id, myInvestorId)
+      var orderStatus = shareId && issueBond.getOrderStatus(shareId)
 
-      if (status == "available") {
-        var action = "Buy "
-      } else if (status == "pending") {
-        var action = "Make offer on "
-      }
-
-      if (status == "sold") {
+      if (orderStatus == "pending" || orderStatus == "paid") {
+        return [
+          element("p", "You bought this!"),
+          share(shareId, bond.outcome, issueBond.getOrderStatus(shareId)),
+        ]
+      } else if (status != "available") {
         return element("p", "Bond has already been sold")
       }
 
-      var buyButtonLabel = action+bond.outcome+" bond - "+toDollarString(bond.totalExpenses())
-
       var form = element("form", {method: "post", action: "/bond-catalog/"+bond.id+"/orders"})
 
-      if (status == "pending") {
-        form.addChild(element("p", element.style({color: "#ff00c0"}), "An offer has already been made on this bond. You can make a secondary offer, which will be fulfilled if the pending one falls through."))
-      }
+      var buyButtonLabel = "Buy "+bond.outcome+" bond - "+toDollarString(bond.totalExpenses())
 
       form.addChildren([
         element("p", element("input", {type: "text", name: "name", placeholder: "Purchaser name"})),
@@ -130,23 +128,23 @@ module.exports = library.export(
       return form
     }
 
-    function renderBondCatalog(request, response) {
+    function renderBondCatalog(header, request, response) {
 
       var meId = someoneIsAPerson.getIdFrom(request)
 
       if (meId) {
         var avatar = someoneIsAPerson(baseBridge, meId)
       } else {
-        someoneIsAPerson.getIdentityFrom(response, "/assignment")
+        someoneIsAPerson.getIdentityFrom(response, "/bond-catalog")
         return
       }
 
       var page = element([
-        avatar,
-        element("h1", "Collective Magic Bond Co"),
-        element("p", "est 2017"),
-        element("h1", "Bond Catalog"),
-      ])
+        avatar])
+      if (header) {
+        page.addChild(header)
+      }
+      page.addChild(element("h1", "Bond Catalog"))
 
       for(var id in bondsForSale) {
         var bond = bondsForSale[id]
@@ -159,7 +157,13 @@ module.exports = library.export(
     function renderBond(request, response) {
       var bridge = baseBridge.forResponse(response)
 
-      bridge.addToHead(element.stylesheet(lineItem))
+      var meId = someoneIsAPerson.getIdFrom(request)
+
+      if (meId) {
+        var myInvestorId = character.remember(meId, "investorId")
+      }
+      
+      bridge.addToHead(element.stylesheet(lineItem, share))
 
       var bond = issueBond.get(request.params.id)
       var tasks = bond.getTasks()
@@ -185,7 +189,7 @@ module.exports = library.export(
         element("p", "Sale price: "+toDollarString(bond.salePrice())),
         element("p", "Bondholder profit after sale: "+toDollarString(bond.profit())),
         element("h1", "Purchase"),
-        purchaseForm(bond),
+        purchaseForm(bond, myInvestorId),
         element(element.style({"height": "100px"}))
       ])
 
@@ -206,6 +210,10 @@ module.exports = library.export(
 
       bondUniverse.do(
         "issueBond.registerInvestor", investorId, name, number)
+
+      var meId = someoneIsAPerson.ensureMe(request, response)
+
+      character.see(meId, "investorId", investorId)
 
       var orderId = issueBond.order(null, bondId, investorId, faceValue)
 
@@ -231,6 +239,7 @@ module.exports = library.export(
 
       var page = element(".lil-page", [
         element("h1", profile.name+" is an investor"),
+        element.stylesheet(share),
       ])
 
       var freshOrder = freshOrders[investorId]
@@ -242,13 +251,37 @@ module.exports = library.export(
         page.addChild(message)
       }
 
-      page.addChild(element("h1", "Bond shares"))
+      page.addChild(element("h1", "Your shares"))
 
-      issueBond.eachOfMyShares(investorId, function(share) {
-        page.addChild(element("p", share.outcome+" bond - "+share.status))
+      issueBond.eachOfMyShares(investorId, function(shareId, outcome, status) {
+        page.addChild(share(shareId, outcome, status))
       })
 
       bridge.send(page)
+    }
+
+    var share = element.template(
+      ".share.container",
+      function(shareId, outcome, status) {
+
+        this.addChild(element("#"+shareId+" "+outcome))
+
+        var buttons = element("Status: "+status+" ")
+
+        if (status == "pending") {
+          buttons.addChild(
+            postButton("Cancel", "/bond-orders/"+shareId+"/cancel")
+          )
+        }
+
+        this.addChild(buttons)
+      }
+    )
+
+    var header
+
+    sellBond.header = function(newHeader) {
+      header = newHeader
     }
 
     function prepareSite(site) {
@@ -263,7 +296,7 @@ module.exports = library.export(
       site.addRoute(
         "get",
         "/bond-catalog",
-        renderBondCatalog
+        renderBondCatalog.bind(null, header)
       )
 
       site.addRoute(
@@ -314,7 +347,19 @@ module.exports = library.export(
         baseBridge.forResponse(response).send("Shares signed")
       })
 
+      site.addRoute("post", "/bond-orders/:orderId/cancel", function(request, response) {
+        var meId = someoneIsAPerson.getIdFrom(request)
+        var myInvestorId = character.remember(meId, "investorId")
+        var orderId = request.params.orderId
+
+        issueBond.cancelOrder(orderId)
+        bondUniverse.do("issueBond.cancelOrder", orderId)
+
+        response.redirect("/investors/"+myInvestorId)
+      })
+
     }
+
 
     function renderUnsignedShare(bridge, bond, order) {
 

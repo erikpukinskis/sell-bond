@@ -4,7 +4,7 @@ library.using(
   [".", "issue-bond"],
   function(sellBond, issueBond, character) {
 
-    var kitchenBond = issueBond(null, "Falafel Kitchen", "Erik Pukinskis")
+    var kitchenBond = issueBond("kitchen", "Falafel Kitchen", "Erik Pukinskis")
 
     kitchenBond.tasks([
       "Make poulish",
