@@ -6,6 +6,9 @@ library.using(
 
     var kitchenBond = issueBond("kitchen", "Falafel Kitchen", "Erik Pukinskis")
 
+  issueBond.registerInvestor("5ua7", "ZOOO", "8")
+  issueBond.orderShare("09t5", "kitchen", "5ua7", 18509, 16827)
+
     kitchenBond.tasks([
       "Make poulish",
       "Make dough",

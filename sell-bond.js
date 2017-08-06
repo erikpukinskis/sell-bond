@@ -186,7 +186,7 @@ module.exports = library.export(
         element("h1", "Financials"),
         expenses,
         element("p", "Total costs: "+toDollarString(bond.totalExpenses())),
-        element("p", "Sale price: "+toDollarString(bond.salePrice())),
+        element("p", "Expected value: "+toDollarString(bond.faceValue())),
         element("p", "Bondholder profit after sale: "+toDollarString(bond.profit())),
         element("h1", "Purchase"),
         purchaseForm(bond, myInvestorId),
@@ -204,7 +204,8 @@ module.exports = library.export(
       var number = request.body.phoneNumber
       var bondId = request.params.bondId
       var bond = issueBond.get(bondId)
-      var faceValue = bond.salePrice()
+      var faceValue = bond.faceValue()
+      var quote = bond.totalExpenses()
 
       var investorId = issueBond.registerInvestor(null, name, number)
 
@@ -215,10 +216,10 @@ module.exports = library.export(
 
       character.see(meId, "investorId", investorId)
 
-      var orderId = issueBond.order(null, bondId, investorId, faceValue)
+      var orderId = issueBond.orderShare(null, bondId, investorId, faceValue, quote)
 
       bondUniverse.do(
-        "issueBond.order", orderId, bondId, investorId, faceValue)
+        "issueBond.orderShare", orderId, bondId, investorId, faceValue, quote)
 
       var buyer = phonePerson("18123201877")
 
@@ -323,11 +324,20 @@ module.exports = library.export(
 
       site.addRoute("get", "/bond-orders/:orderId", function(request, response) {
 
-        var order = issueBond.getOrder(request.params.orderId)
-        var bond = issueBond.get(order.bondId)
+        var orderId = request.params.orderId
+        var outcome = issueBond.describeOrder(orderId)
+        var investorId = issueBond.getOwnerId(orderId)
+
+        var profile = issueBond.getInvestorProfile(investorId)
+        var purchaserName = profile.name
+        var phoneNumber = profile.phoneNumber
+
+        var faceValue = issueBond.getShareValue(orderId)
+        var price = issueBond.getQuote(orderId)
+
         var bridge = baseBridge.forResponse(response)
 
-        renderUnsignedShare(bridge, bond, order)
+        renderUnsignedShare(bridge, outcome, orderId, purchaserName, phoneNumber, faceValue, price)
       })
 
 
@@ -361,20 +371,21 @@ module.exports = library.export(
     }
 
 
-    function renderUnsignedShare(bridge, bond, order) {
+    function renderUnsignedShare(bridge, outcome, orderId, purchaserName, phoneNumber, faceValue, price) {
 
-      var price = order.faceValue / 1.05
-
-      var form = element("form", {method: "post", action: "/bond-orders/"+order.id+"/mark-paid"}, [
-        element("h1", "Receipt of payment for bond shares"),
-        element("p", "To be repayed from "+bond.repaymentSource),
+      var form = element("form", {method: "post", action: "/bond-orders/"+orderId+"/mark-paid"}, [
+        element("h1", "Receipt of payment for "+outcome+" bond shares"),
       ])
 
       form.addChildren(
-        element("input", {type: "text", value: order.purchaserName, name: "purchaserName", placeholder: "Name of person buying shares"}),
-        element("input", {type: "text", value: toDollarString(order.faceValue), name: "faceValue", placeholder: "Face value"}),
+        element("p", "Purhaser name:"),
+        element("input", {type: "text", value: purchaserName, name: "purchaserName", placeholder: "Name of person buying shares"}),
+        element("p", "Face value:"),
+        element("input", {type: "text", value: toDollarString(faceValue), name: "faceValue", placeholder: "Face value"}),
+        element("p", "Quote:"),
         element("input", {type: "text", value: toDollarString(price), name: "price", placeholder: "Price"}),
-        element("input", {type: "text", value: order.phoneNumber, name: "contactNumber", placeholder: "Contact number"}),
+        element("p", "Contact number:"),
+        element("input", {type: "text", value: phoneNumber, name: "contactNumber", placeholder: "Contact number"}),
         element("p", "Payment accepted by"),
         element("input", {type: "text", value: "Erik", name: "paymentReceivedBy", placeholder: "Signed"}),
         element("p", element("input", {type: "submit", value: "Mark paid"}))
