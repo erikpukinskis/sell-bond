@@ -287,6 +287,8 @@ module.exports = library.export(
 
     function prepareSite(site) {
 
+      site.addRoute("get", "/sell-bond/signature.png", site.sendFile(__dirname, "signature.png"))
+
       someoneIsAPerson.prepareSite(site)
 
       if (site.remember("sell-bond")) {
@@ -371,33 +373,159 @@ module.exports = library.export(
     }
 
 
+
+    //  Design inspo:
+    
+    // https://s-media-cache-ak0.pinimg.com/originals/a2/e1/d2/a2e1d24828893d94ec225e5c31cd0a90.jpg
+
+    // http://i.telegraph.co.uk/multimedia/archive/01124/PF-PremiumBond_1124949c.jpg
+
+    var pink = "#f46658"
+    var white = "#fffbf4"
+    var dirtyPink = "#da7a71"
+    var linkPink = "#ee988b"
+    var black = "#322e34"
+    var midGray = "#8b8681"
+    var darkGray = "#6e6860"
+
+    var certStyle = element.style(".certificate", {
+
+      "background": white,
+      "color": darkGray,
+      "padding": "10px",
+      "max-width": "450px",
+      "font-size": "12pt",
+
+      " .inner": {
+        "border": "20px solid pink",
+        "padding": "30px",
+      },
+
+      " .date": {
+        "margin": "1em 0",
+      },
+
+      " .box-value": {
+        "display": "inline-block",
+        "color": white,
+        "background": midGray,
+        "padding": "10px 20px",
+        "font-family": "Courier",
+        "margin": "20px 0",
+      },
+
+      " .label": {
+        "text-align": "center",
+        "font-weight": "bold",
+        "color": darkGray,
+      },
+
+      " .typed": {
+        "font-family": "Courier",
+        "color": midGray,
+      },
+
+      " .no": {
+        "margin-bottom": "1em",
+        "font-weight": "bold",
+      },
+
+      " .title": {
+        "font-weight": "bold",
+        "text-transform": "uppercase",
+        "font-size": "20pt",
+        "font-family": "Georgia",
+        "color": darkGray,
+        "margin-top": "1em",
+      },
+
+      " .number-field": {
+        "margin": "1em 0",
+      },
+
+      " .address": {
+        "margin": "1em 0",
+      },
+
+      " .signature-stuff": {
+        "font-weight": "bold",
+      },
+
+      " .rate-advertisement": {
+        "float": "right",
+        "font-weight": "bold",
+      },
+
+      " .rate-advertisement .percentage": {
+        "font-weight": "normal",
+        "text-align": "center",
+        "font-size": "24pt",
+      },
+    })
+
+    var cert = element(".certificate", [
+      element(".inner", [
+        element(".label", "Bond Certificate"),
+        element(".box-value", "**$170**"),
+        element(".title", "Collective Magic Co"),
+        element(".no", "No. 10001"),
+        element(".typed", "5% NOTE DUE: DECEMBER 15, 2017"),
+
+        element(".typed.address", [
+          "SO-AND-SO<br>",
+          "12 SUCHANDSUCH ST<br>",
+          "BOSTON, MA 02101<br>",
+        ]),
+
+        element(".rate-advertisement", [
+          element(".percentage", "5%"),
+          element("Due 2017"),
+        ]),
+
+        element(".typed.number-field", [
+          "*170*****<br>",
+          "**170****<br>",
+          "***170***<br>",
+          "****170**<br>",
+        ]),
+
+        element(".typed", "**ONE HUNDRED SEVENTY**"),
+
+        element(".typed.date", "DATED: AUG 05,2017"),
+
+        element(".signature-stuff", [
+          element("By"),
+          element("img", {src: "/sell-bond/signature.png", "height": "80px"}),
+          element("President"),
+        ]),
+        element(".box-value", "**$170**"),
+      ]),
+    ])
+
     function renderUnsignedShare(bridge, outcome, orderId, purchaserName, phoneNumber, faceValue, price) {
 
-      var form = element("form", {method: "post", action: "/bond-orders/"+orderId+"/mark-paid"}, [
-        element("h1", "Receipt of payment for "+outcome+" bond shares"),
+      var form = element("form.lil-page", {method: "post", action: "/bond-orders/"+orderId+"/mark-paid"}, [
+
+        element("h1", "Bond Sale Receipt"),
+        element("p", "Order #"+orderId),
+        element("p", purchaserName+"<br>"+phoneNumber),
+        lineItem(outcome+" bond, 1 share", price),
+        element("p", element.style({"margin-top": "2em"}), "Signature:"),
+        element("input", {type: "text", placeholder: "sign here"}),
+        element("p", element("input", {type: "submit", value: "Payment received"})),
+
       ])
 
-      form.addChildren(
-        element("p", "Purhaser name:"),
-        element("input", {type: "text", value: purchaserName, name: "purchaserName", placeholder: "Name of person buying shares"}),
-        element("p", "Face value:"),
-        element("input", {type: "text", value: toDollarString(faceValue), name: "faceValue", placeholder: "Face value"}),
-        element("p", "Quote:"),
-        element("input", {type: "text", value: toDollarString(price), name: "price", placeholder: "Price"}),
-        element("p", "Contact number:"),
-        element("input", {type: "text", value: phoneNumber, name: "contactNumber", placeholder: "Contact number"}),
-        element("p", "Payment accepted by"),
-        element("input", {type: "text", value: "Erik", name: "paymentReceivedBy", placeholder: "Signed"}),
-        element("p", element("input", {type: "submit", value: "Mark paid"}))
-      )
-
-      bridge.send(form)
+      bridge.send([
+        cert,
+        element.stylesheet(certStyle),
+      ])
     }
+
 
     return sellBond
   }
 )
-
 
 
     // 25% goes to hourly pay for people like me and Bobby
