@@ -178,6 +178,8 @@ module.exports = library.export(
         expenses.addChild(lineItem(description, subtotal))
       })
 
+      var profit = bond.faceValue()*0.05
+
       var page = element(".lil-page", [
         element("h1", bond.outcome+" bond"),
         element("p", "Issued by "+bond.issuerName),
@@ -186,8 +188,10 @@ module.exports = library.export(
         element("h1", "Financials"),
         expenses,
         element("p", "Total costs: "+toDollarString(bond.totalExpenses())),
-        element("p", "Expected value: "+toDollarString(bond.faceValue())),
-        element("p", "Bondholder profit after sale: "+toDollarString(bond.profit())),
+        element("p", "Bond price: "+toDollarString(bond.faceValue())),
+        element("p", "Rate: 5% ("+toDollarString(profit)+" profit)"),
+        element("p", "Total returned: "+toDollarString(bond.faceValue()+profit)),
+        element("p", "Date of maturity: DEC 15, 2017"),
         element("h1", "Purchase"),
         purchaseForm(bond, myInvestorId),
         element(element.style({"height": "100px"}))
@@ -373,141 +377,76 @@ module.exports = library.export(
     }
 
 
-
-    //  Design inspo:
-    
-    // https://s-media-cache-ak0.pinimg.com/originals/a2/e1/d2/a2e1d24828893d94ec225e5c31cd0a90.jpg
-
-    // http://i.telegraph.co.uk/multimedia/archive/01124/PF-PremiumBond_1124949c.jpg
-
-    var pink = "#f46658"
-    var white = "#fffbf4"
-    var dirtyPink = "#da7a71"
-    var linkPink = "#ee988b"
-    var black = "#322e34"
-    var midGray = "#8b8681"
-    var darkGray = "#6e6860"
-
     var certStyle = element.style(".certificate", {
 
-      "background": white,
-      "color": darkGray,
-      "padding": "10px",
-      "max-width": "450px",
-      "font-size": "12pt",
-
-      " .inner": {
-        "border": "20px solid pink",
-        "padding": "30px",
-      },
-
-      " .date": {
-        "margin": "1em 0",
-      },
-
-      " .box-value": {
-        "display": "inline-block",
-        "color": white,
-        "background": midGray,
-        "padding": "10px 20px",
-        "font-family": "Courier",
-        "margin": "20px 0",
-      },
-
       " .label": {
-        "text-align": "center",
-        "font-weight": "bold",
-        "color": darkGray,
-      },
-
-      " .typed": {
-        "font-family": "Courier",
-        "color": midGray,
-      },
-
-      " .no": {
-        "margin-bottom": "1em",
-        "font-weight": "bold",
-      },
-
-      " .title": {
-        "font-weight": "bold",
-        "text-transform": "uppercase",
-        "font-size": "20pt",
+        "margin-top": "0.5em",
+        "color": "#ff4441",
+        "font-style": "italic",
         "font-family": "Georgia",
-        "color": darkGray,
-        "margin-top": "1em",
-      },
-
-      " .number-field": {
-        "margin": "1em 0",
-      },
-
-      " .address": {
-        "margin": "1em 0",
-      },
-
-      " .signature-stuff": {
-        "font-weight": "bold",
-      },
-
-      " .rate-advertisement": {
-        "float": "right",
-        "font-weight": "bold",
-      },
-
-      " .rate-advertisement .percentage": {
-        "font-weight": "normal",
-        "text-align": "center",
-        "font-size": "24pt",
       },
     })
 
-    var cert = element(".certificate", [
-      element(".inner", [
-        element(".label", "Bond Certificate"),
-        element(".box-value", "**$170**"),
-        element(".title", "Collective Magic Co"),
-        element(".no", "No. 10001"),
-        element(".typed", "5% NOTE DUE: DECEMBER 15, 2017"),
+    var cert = element(".certificate", element.style({
+        "background": "#ddf6fb",
+        "color": "#403c19",
+        "max-width": "350px",
+        "margin-top": "2em",
+      }),[
+      element(".title", element.style({
+      "color": "#c501ff",
+        "font-weight": "bold",
+        "font-size": "18pt",
 
-        element(".typed.address", [
-          "SO-AND-SO<br>",
-          "12 SUCHANDSUCH ST<br>",
-          "BOSTON, MA 02101<br>",
-        ]),
+      }), "Collective Magic Company"),
+      element(".no", element.style({
+        "font-weight": "bold",
+      }), "Bond No. 10001<br>Payment Receipt"),
 
-        element(".rate-advertisement", [
-          element(".percentage", "5%"),
-          element("Due 2017"),
-        ]),
+      element(".label", "Bond Value:"),
+      element("$170"),
+      element(".typed", "**ONE HUNDRED SEVENTY**"),
+      element(".typed", "5% NOTE DUE: DECEMBER 15, 2017"),
 
-        element(".typed.number-field", [
-          "*170*****<br>",
-          "**170****<br>",
-          "***170***<br>",
-          "****170**<br>",
-        ]),
+      element(".label", "Project:"),
+      element("Falafel Kitchen".toUpperCase()),
 
-        element(".typed", "**ONE HUNDRED SEVENTY**"),
-
-        element(".typed.date", "DATED: AUG 05,2017"),
-
-        element(".signature-stuff", [
-          element("By"),
-          element("img", {src: "/sell-bond/signature.png", "height": "80px"}),
-          element("President"),
-        ]),
-        element(".box-value", "**$170**"),
+      element(".label", "Holder:"),
+      element(".address", [
+        "SO-AND-SO<br>",
+        "12 SUCHANDSUCH ST<br>",
+        "BOSTON, MA 02101<br>",
       ]),
+
+      element(".label", "Dated:"),
+      element("AUG 05, 2017"),
+
+      element(".label", "By:"),
+
+      element(element.style({
+        "font-weight": "bold"
+      }), [
+        element("img", {src: "/sell-bond/signature.png", "height": "60px"}),
+        element("President<br>Collective Magic Company<br>871 W MacArthur Blvd<br>Oakland, CA 94608"),
+      ]),
+
+      element(),
+      element(".box-value", element.style({
+        "display": "inline-block",
+        "color": "#f1ddfb",
+        "background": "#403c19",
+        "padding": "10px 20px",
+        "margin": "1em 0",
+      }), "**$170**"),
     ])
 
     function renderUnsignedShare(bridge, outcome, orderId, purchaserName, phoneNumber, faceValue, price) {
 
       var form = element("form.lil-page", {method: "post", action: "/bond-orders/"+orderId+"/mark-paid"}, [
 
-        element("h1", "Bond Sale Receipt"),
+        element("h1", "Sign Receipt"),
         element("p", "Order #"+orderId),
+
         element("p", purchaserName+"<br>"+phoneNumber),
         lineItem(outcome+" bond, 1 share", price),
         element("p", element.style({"margin-top": "2em"}), "Signature:"),
@@ -517,8 +456,9 @@ module.exports = library.export(
       ])
 
       bridge.send([
+        form,
         cert,
-        element.stylesheet(certStyle),
+        element.stylesheet(certStyle)
       ])
     }
 
