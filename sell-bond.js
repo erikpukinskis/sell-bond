@@ -352,15 +352,20 @@ module.exports = library.export(
       site.addRoute("post", "/bond-orders/:orderId/mark-paid", function(request, response) {
 
         var orderId = request.params.orderId
-        var signature = request.body.paymentReceivedBy
-        var order = issueBond.getOrder(orderId)
-        var price = parseMoney(request.body.price)
+        var signature = request.body.textSignature
+        var meId = someoneIsAPerson.getIdFrom(request)
 
-        issueBond.markPaid(orderId, price, signature)
+        var metadata = {characterId: meId, textSignature: signature}
 
-        bondUniverse.do("issueBond.markPaid", orderId, price, signature)
+        issueBond.markPaid(orderId, metadata)
 
-        baseBridge.forResponse(response).send("Shares signed")
+        bondUniverse.do("issueBond.markPaid", orderId, metadata)
+
+        baseBridge.forResponse(response).send([
+          element("h1", "Share signed"),
+          cert,
+          element.stylesheet(certStyle)
+        ])
       })
 
       site.addRoute("post", "/bond-orders/:orderId/cancel", function(request, response) {
@@ -450,7 +455,7 @@ module.exports = library.export(
         element("p", purchaserName+"<br>"+phoneNumber),
         lineItem(outcome+" bond, 1 share", price),
         element("p", element.style({"margin-top": "2em"}), "Signature:"),
-        element("input", {type: "text", placeholder: "sign here"}),
+        element("input", {type: "text", name: "textSignature", placeholder: "sign here"}),
         element("p", element("input", {type: "submit", value: "Payment received"})),
 
       ])
