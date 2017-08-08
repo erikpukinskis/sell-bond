@@ -130,31 +130,37 @@ module.exports = library.export(
       return form
     }
 
+    var minutes = 60
+    var hours = 60*minutes
+    var days = 24*hours
+    var years = 365*days
+
     function renderBondCatalog(header, request, response) {
 
       var meId = someoneIsAPerson.getIdFrom(request)
 
+      var page = element()
+
       if (meId) {
         var avatar = someoneIsAPerson(baseBridge, meId)
-      } else {
-        someoneIsAPerson.getIdentityFrom(response, "/bond-catalog")
-        return
+        page.addChild(avatar)
       }
 
-      var page = element([
-        avatar])
       if (header) {
         page.addChild(header)
       }
+
       page.addChild(element("h1", "Bond Catalog"))
 
       for(var i=0; i<bondsForSale.length; i++) {
         var bondId = bondsForSale[i]
-        var link = element(
-          "a",
-          {href: "/bond-catalog/"+bondId},
-          issueBond.getOutcome(bondId)
-        )
+        var outcome = issueBond.getOutcome(bondId)
+
+        if (!outcome) {
+          throw new Error(bondId+" bond has no outcome")
+        }
+        var link = element("a", {href: "/bond-catalog/"+bondId}, outcome)
+
         var p = element("p", link)
         page.addChild(p)
       }
@@ -175,8 +181,13 @@ module.exports = library.export(
 
       var bondId = request.params.id
 
+      var outcome = issueBond.getOutcome(bondId)
+
       var financials = issueBond.calculateFinancials(bondId)
 
+      if (!financials.totalExpenses) {
+        throw new Error(outcome+" bond has no expenses")
+      }
       var taskList = element("ol")
 
       issueBond.eachTask(bondId, function(task) {
