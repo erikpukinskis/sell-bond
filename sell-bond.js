@@ -77,11 +77,11 @@ module.exports = library.export(
 
     var bondUniverse = aWildUniverseAppeared("bonds", {issueBond: "issue-bond"})
 
-    var bondsForSale = {}
+    var bondsForSale = []
 
-    function sellBond(bond) {
+    function sellBond(bondId) {
       host.onSite(prepareSite)
-      bondsForSale[bond.id] = bond
+      bondsForSale.push(bondId)
     }
 
     function parseMoney(string) {
@@ -100,24 +100,26 @@ module.exports = library.export(
 
     character("k2zy", "bloko")
 
-    function purchaseForm(bond, myInvestorId) {
+    function purchaseForm(bondId, myInvestorId) {
 
-      var status = issueBond.getStatus(bond.id)
-      var shareId = issueBond.myOrderOn(bond.id, myInvestorId)
+      var status = issueBond.getStatus(bondId)
+      var shareId = issueBond.myOrderOn(bondId, myInvestorId)
       var orderStatus = shareId && issueBond.getOrderStatus(shareId)
+      var outcome = issueBond.getOutcome(bondId)
+      var financials = issueBond.calculateFinancials(bondId)
 
       if (orderStatus == "pending" || orderStatus == "paid") {
         return [
           element("p", "You bought this!"),
-          share(shareId, bond.outcome, issueBond.getOrderStatus(shareId)),
+          share(shareId, outcome, issueBond.getOrderStatus(shareId)),
         ]
       } else if (status != "available") {
         return element("p", "Bond has already been sold")
       }
 
-      var form = element("form", {method: "post", action: "/bond-catalog/"+bond.id+"/orders"})
+      var form = element("form", {method: "post", action: "/bond-catalog/"+bondId+"/orders"})
 
-      var buyButtonLabel = "Buy "+bond.outcome+" bond - "+toDollarString(bond.totalExpenses())
+      var buyButtonLabel = "Buy "+outcome+" bond - "+toDollarString(financials.totalExpenses)
 
       form.addChildren([
         element("p", element("input", {type: "text", name: "name", placeholder: "Purchaser name"})),
@@ -146,9 +148,15 @@ module.exports = library.export(
       }
       page.addChild(element("h1", "Bond Catalog"))
 
-      for(var id in bondsForSale) {
-        var bond = bondsForSale[id]
-        page.addChild(element("p", element("a", {href: "/bond-catalog/"+bond.id}, bond.outcome), " issued by "+bond.issuerName))
+      for(var i=0; i<bondsForSale.length; i++) {
+        var bondId = bondsForSale[i]
+        var link = element(
+          "a",
+          {href: "/bond-catalog/"+bondId},
+          issueBond.getOutcome(bondId)
+        )
+        var p = element("p", link)
+        page.addChild(p)
       }
 
       baseBridge.forResponse(response).send(page)
@@ -165,35 +173,36 @@ module.exports = library.export(
       
       bridge.addToHead(element.stylesheet(lineItem, share))
 
-      var bond = issueBond.get(request.params.id)
-      var tasks = bond.getTasks()
+      var bondId = request.params.id
 
-      function li(task) {
-        return element("li", task)
-      }
+      var financials = issueBond.calculateFinancials(bondId)
+
+      var taskList = element("ol")
+
+      issueBond.eachTask(bondId, function(task) {
+        taskList.addChild(element("li", task))
+      })
 
       var expenses = element()
 
-      bond.eachExpense(function(description, subtotal) {
+      issueBond.eachExpense(bondId, function(description, subtotal) {
         expenses.addChild(lineItem(description, subtotal))
       })
 
-      var profit = bond.faceValue()*0.05
-
       var page = element(".lil-page", [
-        element("h1", bond.outcome+" bond"),
-        element("p", "Issued by "+bond.issuerName),
+        element("h1", issueBond.getOutcome(bondId)+" bond"),
+        element("p", "Issued by "+issueBond.describeIssuer(bondId)),
         element("h1", "Tasks required for maturation of bond"),
-        tasks.length ? element("ol", tasks.map(li)) : element("p", "None"),
+        taskList,
         element("h1", "Financials"),
         expenses,
-        element("p", "Total costs: "+toDollarString(bond.totalExpenses())),
-        element("p", "Bond price: "+toDollarString(bond.faceValue())),
-        element("p", "Rate: 5% ("+toDollarString(profit)+" profit)"),
-        element("p", "Total returned: "+toDollarString(bond.faceValue()+profit)),
+        element("p", "Total costs: "+toDollarString(financials.totalExpenses)),
+        element("p", "Bond price: "+toDollarString(financials.faceValue)),
+        element("p", "Rate: 5% ("+toDollarString(financials.profit)+" profit)"),
+        element("p", "Total returned: "+toDollarString(financials.faceValue*1.05)),
         element("p", "Date of maturity: DEC 15, 2017"),
         element("h1", "Purchase"),
-        purchaseForm(bond, myInvestorId),
+        purchaseForm(bondId, myInvestorId),
         element(element.style({"height": "100px"}))
       ])
 
@@ -207,9 +216,9 @@ module.exports = library.export(
       var name = request.body.name
       var number = request.body.phoneNumber
       var bondId = request.params.bondId
-      var bond = issueBond.get(bondId)
-      var faceValue = bond.faceValue()
-      var quote = bond.totalExpenses()
+      var financials = issueBond.calculateFinancials(bondId)
+      var faceValue = financials.faceValue
+      var quote = financials.totalExpenses
 
       var investorId = issueBond.registerInvestor(null, name, number)
 
