@@ -1,8 +1,10 @@
 var library = require("module-library")(require)
 
 library.using(
-  [".", "issue-bond"],
+  [".", "issue-bond", "character"],
   function(sellBond, issueBond, character) {
+
+    character("5n53", "light")
 
     issueBond("kitchen", "Falafel Kitchen", "Erik Pukinskis")
 
