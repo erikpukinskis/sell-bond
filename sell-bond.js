@@ -487,6 +487,7 @@ module.exports = library.export(
       ])
     }
 
+    sellBond.lineItem = lineItem
 
     return sellBond
   }
