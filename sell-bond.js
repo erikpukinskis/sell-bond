@@ -72,8 +72,8 @@ library.define(
 
 module.exports = library.export(
   "sell-bond",
-  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person", "line-item", "to-dollar-string", "character", "post-button"],
-  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson, lineItem, toDollarString, character, postButton) {
+  ["web-element", "basic-styles", "tell-the-universe", "issue-bond", "browser-bridge", "phone-person", "web-host", "someone-is-a-person", "line-item", "to-dollar-string", "creature", "post-button"],
+  function(element, basicStyles, aWildUniverseAppeared, issueBond, BrowserBridge, phonePerson, host, someoneIsAPerson, lineItem, toDollarString, creature, postButton) {
 
     var bondUniverse = aWildUniverseAppeared("bonds", {issueBond: "issue-bond"})
 
@@ -98,7 +98,7 @@ module.exports = library.export(
 
     basicStyles.addTo(baseBridge)
 
-    character("k2zy", "bloko")
+    creature("k2zy", "bloko")
 
     function purchaseForm(bondId, myInvestorId) {
 
@@ -174,7 +174,7 @@ module.exports = library.export(
       var meId = someoneIsAPerson.getIdFrom(request)
 
       if (meId) {
-        var myInvestorId = character.remember(meId, "investorId")
+        var myInvestorId = creature.remember(meId, "investorId")
       }
       
       bridge.addToHead(element.stylesheet(lineItem, share))
@@ -238,7 +238,7 @@ module.exports = library.export(
 
       var meId = someoneIsAPerson.ensureMe(request, response)
 
-      character.see(meId, "investorId", investorId)
+      creature.see(meId, "investorId", investorId)
 
       var orderId = issueBond.orderShare(null, bondId, investorId, faceValue, quote)
 
@@ -375,7 +375,7 @@ module.exports = library.export(
         var signature = request.body.textSignature
         var meId = someoneIsAPerson.getIdFrom(request)
 
-        var metadata = {characterId: meId, textSignature: signature}
+        var metadata = {creatureId: meId, textSignature: signature}
 
         issueBond.markPaid(orderId, metadata)
 
@@ -390,7 +390,7 @@ module.exports = library.export(
 
       site.addRoute("post", "/bond-orders/:orderId/cancel", function(request, response) {
         var meId = someoneIsAPerson.getIdFrom(request)
-        var myInvestorId = character.remember(meId, "investorId")
+        var myInvestorId = creature.remember(meId, "investorId")
         var orderId = request.params.orderId
 
         issueBond.cancelOrder(orderId)
