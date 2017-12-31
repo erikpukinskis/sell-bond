@@ -13,7 +13,6 @@
     "phone-person": "*",
     "browser-bridge": "*",
     "someone-is-a-person": "*",
-    "character": "*",
     "post-button": "*"
   },
   "repository": {
